@@ -1,26 +1,30 @@
 from flask import Flask, request, jsonify
 import os
-import gdown
+from minio import Minio
 
 # ────────────────────────────────────────────────────────────── #
-# Téléchargement automatique des modèles s'ils sont absents
+# Téléchargement automatique des modèles depuis MinIO
 # ────────────────────────────────────────────────────────────── #
-def download_from_drive_if_needed(file_id: str, target_path: str):
+def download_from_minio_if_needed(bucket_name, object_name, target_path):
     if not os.path.exists(target_path):
-        print(f"Téléchargement de {target_path} depuis Google Drive...")
-        url = f"https://drive.google.com/uc?id={file_id}"
+        print(f"Téléchargement de {object_name} depuis MinIO...")
         os.makedirs(os.path.dirname(target_path), exist_ok=True)
-        gdown.download(url, target_path, quiet=False)
+        client = Minio(
+            "45.149.207.13:9000",
+            access_key="minio",
+            secret_key="minio123",
+            secure=False
+        )
+        client.fget_object(bucket_name, object_name, target_path)
+    else:
+        print(f"Modèle déjà présent : {target_path}")
 
-download_from_drive_if_needed(
-    "1dmj2KBnhlW1CCbZBAmaH6N3tKeGAN0Ng", "saved_model/dnn_recommender.pt"
-)
-download_from_drive_if_needed(
-    "1IVj-2rrroKVeOptJ4GyZvneSdXBRSZ5a", "saved_model/deepfm_ranker.pt"
-)
+# Télécharger les deux modèles si absents
+download_from_minio_if_needed("models", "dnn_recommender.pt", "saved_model/dnn_recommender.pt")
+download_from_minio_if_needed("models", "deepfm_ranker.pt", "saved_model/deepfm_ranker.pt")
 
 # ────────────────────────────────────────────────────────────── #
-# Imports qui dépendent des modèles (à faire après le download)
+# Imports (à faire après le téléchargement des modèles)
 # ────────────────────────────────────────────────────────────── #
 from models.db import get_user_view_count, get_movie_metadata
 from models.recall.cold_start import recommend_cold_start
@@ -73,9 +77,6 @@ def recommend_endpoint():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-# if __name__ == "__main__":
-#     app.run(debug=True)
 
 if __name__ == "__main__":
     app.run(debug=True)

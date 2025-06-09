@@ -1,3 +1,4 @@
+minio>=7.1.14
 Flask>=2.0
 gunicorn>=21.2
 numpy>=1.23,<1.28
@@ -7,4 +8,3 @@ tqdm>=4.66
 torch==2.2.1
 deepctr-torch==0.2.9
 psycopg2-binary>=2.9
-gdown>=4.7.1
